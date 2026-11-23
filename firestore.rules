@@ -1,0 +1,141 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Primitive Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdminEmail() {
+      return 'email' in request.auth.token &&
+        request.auth.token.email is string &&
+        request.auth.token.email.lower() in [
+          'hamamalidrose@gmail.com',
+          'louayaladross@gmail.com'
+        ];
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        isAdminEmail() ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 3. Entity Validation Blueprint
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+          'category',
+          'nameAr',
+          'descAr',
+          'price',
+          'discountPercent',
+          'specsAr',
+          'image',
+          'createdBy',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'category',
+          'nameAr',
+          'descAr',
+          'price',
+          'discountPercent',
+          'specsAr',
+          'image',
+          'createdBy',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.category is string &&
+        data.category in [
+          'bedrooms',
+          'beds',
+          'vanities',
+          'wardrobes',
+          'mattresses',
+          'wall_decor',
+          'nightstands',
+          'pillows'
+        ] &&
+        data.nameAr is string && data.nameAr.size() >= 1 && data.nameAr.size() <= 140 &&
+        data.descAr is string && data.descAr.size() >= 1 && data.descAr.size() <= 1200 &&
+        data.price is number && data.price > 0 && data.price <= 10000000 &&
+        data.discountPercent is number && data.discountPercent >= 0 && data.discountPercent <= 90 &&
+        data.specsAr is string && data.specsAr.size() <= 300 &&
+        data.image is string && data.image.size() >= 1 && data.image.size() <= 850000 &&
+        data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // 4. Public Catalog Products (Public Read, Verified Admin-Only Writes)
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(productId) &&
+        isValidProduct(incoming()) &&
+        incoming().createdBy == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+
+      allow update: if isVerifiedUser() &&
+        isValidId(productId) &&
+        isValidProduct(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'category',
+          'nameAr',
+          'descAr',
+          'price',
+          'discountPercent',
+          'specsAr',
+          'image',
+          'updatedAt'
+        ]) &&
+        incoming().createdBy == existing().createdBy &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+
+      allow delete: if isVerifiedUser() && isValidId(productId) && isAdmin();
+    }
+
+    // 5. Server-Managed Admin Allowlist Documents
+    match /admins/{adminId} {
+      allow get: if isVerifiedUser() && isValidId(adminId) && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    // 6. Startup Connectivity Check Document
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+      allow list, write: if false;
+    }
+  }
+}

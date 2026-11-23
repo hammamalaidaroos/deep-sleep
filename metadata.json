@@ -1,0 +1,6 @@
+{
+  "name": "Deep Sleep",
+  "description": "متجر أثاث منزلي فاخر متخصص في غرف النوم، الأسرة، المراتب، وخزائن الملابس بتصميم كلاسيكي أنيق.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

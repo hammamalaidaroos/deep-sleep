@@ -1,0 +1,116 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A luxury bedroom furniture catalog item in the Deep Sleep store.",
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "bedrooms",
+            "beds",
+            "vanities",
+            "wardrobes",
+            "mattresses",
+            "wall_decor",
+            "nightstands",
+            "pillows"
+          ],
+          "description": "One of the 8 Deep Sleep store categories."
+        },
+        "nameAr": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140,
+          "description": "Arabic display title of the furniture item."
+        },
+        "descAr": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200,
+          "description": "Arabic description of materials, craftsmanship, and comfort."
+        },
+        "price": {
+          "type": "number",
+          "description": "Base price in Saudi Riyal (SAR) before discount."
+        },
+        "discountPercent": {
+          "type": "number",
+          "description": "Optional discount percentage between 0 and 90."
+        },
+        "specsAr": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Concise specifications separated by middots."
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 850000,
+          "description": "Image path, HTTPS URL, or compressed Data URL."
+        },
+        "createdBy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Firebase Auth UID of the admin who created the document."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the product was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the product was last updated."
+        }
+      },
+      "required": [
+        "category",
+        "nameAr",
+        "descAr",
+        "price",
+        "discountPercent",
+        "specsAr",
+        "image",
+        "createdBy",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Optional Firestore-backed admin marker document keyed by Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Admin email address."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"],
+          "description": "Role label."
+        }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": {
+        "$ref": "#/entities/Product"
+      },
+      "description": "Publicly readable luxury bedroom furniture catalog; writes restricted to verified store admins."
+    },
+    "/admins/{adminId}": {
+      "schema": {
+        "$ref": "#/entities/AdminUser"
+      },
+      "description": "Server-managed admin allowlist documents; read restricted to the matching signed-in user."
+    }
+  }
+}
