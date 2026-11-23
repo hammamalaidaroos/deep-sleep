@@ -35,7 +35,7 @@ export default defineConfig(() => {
           if (fs.existsSync(distDir) && !fs.existsSync(robotsPath)) {
             fs.writeFileSync(
               robotsPath,
-              'User-agent: *\nAllow: /\n\nSitemap: /sitemap.xml\n',
+              'User-agent: *\nAllow: /\n\nSitemap: https://deep-sleep-eta.vercel.app/sitemap.xml\n',
               'utf8'
             );
           }
@@ -44,7 +44,7 @@ export default defineConfig(() => {
           if (fs.existsSync(distDir) && !fs.existsSync(sitemapPath)) {
             fs.writeFileSync(
               sitemapPath,
-              '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n</urlset>\n',
+              '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://deep-sleep-eta.vercel.app/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n</urlset>\n',
               'utf8'
             );
           }
