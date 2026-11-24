@@ -652,6 +652,10 @@ function subscribeToProducts(): void {
       }
     },
     (error) => {
+      if (isOfflineOrNetworkError(error)) {
+        console.warn('Firestore snapshot paused while client is offline.');
+        return;
+      }
       handleFirestoreError(error, OperationType.LIST, 'products');
     }
   );

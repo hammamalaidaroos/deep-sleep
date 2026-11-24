@@ -2,11 +2,11 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import {
   doc,
+  enableNetwork,
   getDocFromServer,
   getFirestore,
   initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
+  memoryLocalCache,
   type Firestore,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -19,10 +19,7 @@ function createFirestoreInstance(): Firestore {
       app,
       {
         experimentalAutoDetectLongPolling: true,
-        experimentalLongPollingOptions: { timeoutSeconds: 15 },
-        localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager(),
-        }),
+        localCache: memoryLocalCache(),
       },
       firebaseConfig.firestoreDatabaseId
     );
@@ -32,7 +29,6 @@ function createFirestoreInstance(): Firestore {
         app,
         {
           experimentalAutoDetectLongPolling: true,
-          experimentalLongPollingOptions: { timeoutSeconds: 15 },
         },
         firebaseConfig.firestoreDatabaseId
       );
@@ -106,11 +102,44 @@ export function handleFirestoreError(
 }
 
 export async function testConnection(): Promise<void> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    if (typeof window !== 'undefined') {
+      window.addEventListener(
+        'online',
+        () => {
+          void testConnection();
+        },
+        { once: true }
+      );
+    }
+    return;
+  }
+
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration: client is offline.');
+    const isOfflineErr =
+      error instanceof Error &&
+      (error.message.includes('the client is offline') ||
+        (error as { code?: string }).code === 'unavailable');
+
+    if (isOfflineErr) {
+      try {
+        await enableNetwork(db);
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        await getDocFromServer(doc(db, 'test', 'connection'));
+        return;
+      } catch (retryError) {
+        const stillOffline =
+          retryError instanceof Error &&
+          (retryError.message.includes('the client is offline') ||
+            (retryError as { code?: string }).code === 'unavailable');
+        if (stillOffline) {
+          console.warn('Firestore backend currently unreachable (client is offline).');
+          return;
+        }
+        console.error('Firestore connection check failed:', retryError);
+      }
     }
   }
 }
